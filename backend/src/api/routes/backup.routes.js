@@ -7,15 +7,35 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const dayjs = require('dayjs');
+const { getDb } = require('../../database/database');
+const AuditService = require('../../services/audit.service');
 
 module.exports = {
     create: (req, res) => {
         try {
-            // Placeholder for backup functionality
+            const db = getDb();
+            const backupDir = path.join(os.homedir(), '.config', 'bigmart-pos', 'backups');
+            if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+            const filename = `bigmart_backup_${dayjs().format('YYYY-MM-DD_HH-mm')}.db`;
+            const filepath = path.join(backupDir, filename);
+            db.backup(filepath);
+
+            const userId = (req.user && req.user.sub) || null;
+            AuditService.log({
+                userId,
+                action: 'backup.create',
+                tableName: null,
+                recordId: null,
+                oldValues: null,
+                newValues: { filepath }
+            });
+
             res.json({
                 success: true,
                 message: 'Backup created successfully',
-                filepath: path.join(os.homedir(), '.config', 'bigmart-pos', 'backups', 'backup.db')
+                path: filepath
             });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });

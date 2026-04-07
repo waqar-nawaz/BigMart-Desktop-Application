@@ -10,6 +10,7 @@
 const { getDb } = require('../../database/database');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
+const AuditService = require('../../services/audit.service');
 
 const hashPassword = (password) => {
     return bcrypt.hashSync(password, 10);
@@ -52,6 +53,15 @@ module.exports = {
         VALUES (?, ?, ?, ?, ?, ?, ?, 1)
       `).run(id, username, passwordHash, full_name, email || null, role || 'cashier', pin || null);
 
+            AuditService.log({
+                userId: (req.user && req.user.sub) || null,
+                action: 'user.create',
+                tableName: 'users',
+                recordId: id,
+                oldValues: null,
+                newValues: { username, full_name, email: email || null, role: role || 'cashier', pin: pin || null }
+            });
+
             res.json({
                 success: true,
                 id,
@@ -90,7 +100,18 @@ module.exports = {
                 params.splice(5, 0, hashPassword(password));
             }
 
+            const before = getDb().prepare('SELECT id,username,full_name,email,role,pin,is_active FROM users WHERE id=?').get(id);
             getDb().prepare(query).run(...params);
+            const after = getDb().prepare('SELECT id,username,full_name,email,role,pin,is_active FROM users WHERE id=?').get(id);
+
+            AuditService.log({
+                userId: (req.user && req.user.sub) || null,
+                action: 'user.update',
+                tableName: 'users',
+                recordId: id,
+                oldValues: before,
+                newValues: after
+            });
 
             res.json({ success: true, message: 'User updated successfully' });
         } catch (err) {

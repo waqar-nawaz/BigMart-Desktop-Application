@@ -6,6 +6,7 @@
 
 const { getDb } = require('../../database/database');
 const { v4: uuidv4 } = require('uuid');
+const AuditService = require('../../services/audit.service');
 
 module.exports = {
     getAll: (req, res) => {
@@ -32,10 +33,20 @@ module.exports = {
             }
 
             const id = uuidv4();
+            const userId = recorded_by || (req.user && req.user.sub) || null;
             getDb().prepare(`
         INSERT INTO expenses (id, category, amount, description, payment_method, reference, recorded_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(id, category, amount, description || null, payment_method || 'cash', reference || null, recorded_by || null);
+      `).run(id, category, amount, description || null, payment_method || 'cash', reference || null, userId);
+
+            AuditService.log({
+                userId,
+                action: 'expense.create',
+                tableName: 'expenses',
+                recordId: id,
+                oldValues: null,
+                newValues: { category, amount, payment_method: payment_method || 'cash' }
+            });
 
             res.json({ success: true, id, message: 'Expense recorded' });
         } catch (err) {

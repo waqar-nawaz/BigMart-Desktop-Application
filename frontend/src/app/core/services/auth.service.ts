@@ -17,6 +17,7 @@ import { ElectronService } from './electron.service';
 import { User, Shift } from '../models';
 
 const USER_STORAGE_KEY = 'bigmart_current_user';
+const TOKEN_STORAGE_KEY = 'bigmart_auth_token';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -33,6 +34,9 @@ export class AuthService {
     if (stored) {
       try { this.userSubject.next(JSON.parse(stored)); } catch { /* ignore */ }
     }
+
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (storedToken) this.electronService.setAuthToken(storedToken);
   }
 
   // ── Getters ───────────────────────────────────────────────
@@ -50,6 +54,7 @@ export class AuthService {
     const result = await this.electronService.login({ username, password });
     if (result?.success && result?.user) {
       this.setUser(result.user);
+      this.setToken(result.token || null);
       await this.loadActiveShift();
     }
     return result;
@@ -59,6 +64,7 @@ export class AuthService {
     const result = await this.electronService.pinLogin({ pin });
     if (result?.success && result?.user) {
       this.setUser(result.user);
+      this.setToken(result.token || null);
       await this.loadActiveShift();
     }
     return result;
@@ -68,6 +74,8 @@ export class AuthService {
     this.userSubject.next(null);
     this.shiftSubject.next(null);
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    this.electronService.setAuthToken(null);
     this.router.navigate(['/login']);
   }
 
@@ -84,5 +92,11 @@ export class AuthService {
   private setUser(user: User) {
     this.userSubject.next(user);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  }
+
+  private setToken(token: string | null) {
+    if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    else localStorage.removeItem(TOKEN_STORAGE_KEY);
+    this.electronService.setAuthToken(token);
   }
 }

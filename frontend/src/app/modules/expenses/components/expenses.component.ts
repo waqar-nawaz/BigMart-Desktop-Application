@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ElectronService } from '../../../core/services/electron.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmService } from '../../../shared/services/confirm.service';
 import { Expense } from '../../../core/models';
 
 @Component({
@@ -19,14 +20,22 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   showModal = false;
   expenseForm!: FormGroup;
 
-  constructor(private electronService: ElectronService, private fb: FormBuilder, public authService: AuthService) {
+  constructor(
+    private electronService: ElectronService,
+    private fb: FormBuilder,
+    public authService: AuthService,
+    private confirmService: ConfirmService
+  ) {
     this.initForm();
   }
 
   ngOnInit(): void {
     this.loadExpenses();
     // Refresh less aggressively
-    this.refreshInterval = setInterval(() => this.loadExpenses(), 60000);
+    this.refreshInterval = setInterval(() => {
+      if (document.hidden) return;
+      this.loadExpenses();
+    }, 60000);
   }
 
   ngOnDestroy(): void {
@@ -85,7 +94,13 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       if (result.success) {
         this.loadExpenses();
         this.showModal = false;
-      } else { alert('Error: ' + result.message); }
+      } else {
+        this.confirmService.alert({
+          title: 'Save Error',
+          message: result.message || 'Could not save expense',
+          type: 'danger'
+        });
+      }
     } catch (err) { console.error(err); } finally { this.saving = false; }
   }
 }

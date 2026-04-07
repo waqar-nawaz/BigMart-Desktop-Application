@@ -25,6 +25,11 @@ export class ElectronService {
   private apiUrl = 'http://localhost:3000/api';
   private hasElectron = !!(window && window.electronAPI);
   private apiAvailable: boolean | null = null; // null = not checked yet
+  private authToken: string | null = null;
+
+  setAuthToken(token: string | null) {
+    this.authToken = token;
+  }
 
   get isElectron(): boolean {
     return this.hasElectron;
@@ -53,9 +58,11 @@ export class ElectronService {
   // Generic HTTP call helper
   private async apiCall<T>(method: string, endpoint: string, data?: any): Promise<T> {
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (this.authToken) headers['Authorization'] = `Bearer ${this.authToken}`;
       const options: RequestInit = {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
       };
       if (data) options.body = JSON.stringify(data);
 
@@ -149,7 +156,17 @@ export class ElectronService {
     }
     return this.apiCall('GET', url);
   }
-  returnSale(d: any): Promise<ApiResponse> { return this.apiCall('POST', '/sales/return', d); }
+  returnSale(d: any): Promise<ApiResponse> {
+    // Backward/forward compatibility mapping:
+    // backend expects { saleId, returnReason }
+    if (d && (d.sale_id || d.reason) && (!d.saleId && !d.returnReason)) {
+      return this.apiCall('POST', '/sales/return', {
+        saleId: d.sale_id,
+        returnReason: d.reason,
+      });
+    }
+    return this.apiCall('POST', '/sales/return', d);
+  }
   generateReceipt(id: string): Promise<{ sale: Sale; settings: AppSettings }> { return this.apiCall('POST', `/sales/${id}/receipt`, {}); }
 
   // ── Inventory ────────────────────────────────────────────

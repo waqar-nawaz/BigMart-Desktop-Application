@@ -31,7 +31,10 @@ export class CustomersComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadCustomers();
     // Refresh less aggressively
-    this.refreshInterval = setInterval(() => this.loadCustomers(), 60000);
+    this.refreshInterval = setInterval(() => {
+      if (document.hidden) return;
+      this.loadCustomers();
+    }, 60000);
   }
 
   ngOnDestroy(): void {

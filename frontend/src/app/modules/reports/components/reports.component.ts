@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ElectronService } from '../../../core/services/electron.service';
 import { SalesSummaryReport } from '../../../core/models';
+import { ConfirmService } from '../../../shared/services/confirm.service';
 
 @Component({
   selector: 'app-reports',
@@ -13,7 +14,7 @@ export class ReportsComponent implements OnInit {
   loading = false;
   exporting = false;
 
-  constructor(private electronService: ElectronService) { }
+  constructor(private electronService: ElectronService, private confirmService: ConfirmService) { }
 
   ngOnInit(): void {
     const today = new Date().toISOString().split('T')[0];
@@ -47,12 +48,20 @@ export class ReportsComponent implements OnInit {
       });
 
       if (!result.success) {
-        alert('Export failed: ' + result.message);
+        this.confirmService.alert({
+          title: 'Export Failed',
+          message: result.message || 'Export failed',
+          type: 'danger'
+        });
       }
       // ✅ File downloads automatically — no dialog needed
 
     } catch (err) {
-      alert('Unexpected error during export');
+      this.confirmService.alert({
+        title: 'Export Failed',
+        message: 'Unexpected error during export',
+        type: 'danger'
+      });
     } finally {
       this.exporting = false;
     }

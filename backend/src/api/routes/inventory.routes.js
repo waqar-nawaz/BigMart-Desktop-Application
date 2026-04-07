@@ -6,6 +6,7 @@
 
 const { getDb } = require('../../database/database');
 const { v4: uuidv4 } = require('uuid');
+const AuditService = require('../../services/audit.service');
 
 module.exports = {
     adjust: (req, res) => {
@@ -42,6 +43,7 @@ module.exports = {
             }
 
             const adjustmentId = uuidv4();
+            const userId = adjusted_by || (req.user && req.user.sub) || null;
 
             db.prepare(`
         INSERT INTO stock_adjustments 
@@ -50,6 +52,15 @@ module.exports = {
       `).run(adjustmentId, product_id, product_name, adjustment_type, quantityBefore, adjustment_quantity, quantityAfter, reason || null, adjusted_by || null);
 
             db.prepare('UPDATE products SET stock_quantity = ? WHERE id = ?').run(quantityAfter, product_id);
+
+            AuditService.log({
+                userId,
+                action: 'inventory.adjust',
+                tableName: 'products',
+                recordId: product_id,
+                oldValues: { stock_quantity: quantityBefore },
+                newValues: { stock_quantity: quantityAfter, adjustment_type, adjustment_quantity, reason: reason || null }
+            });
 
             res.json({ success: true, id: adjustmentId, message: 'Stock adjusted' });
         } catch (err) {

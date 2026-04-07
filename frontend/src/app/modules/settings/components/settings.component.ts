@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ElectronService } from '../../../core/services/electron.service';
 import { AppSettings } from '../../../core/models';
+import { ConfirmService } from '../../../shared/services/confirm.service';
 
 @Component({
   selector: 'app-settings',
@@ -12,7 +13,11 @@ export class SettingsComponent implements OnInit {
   saving = false;
   backingUp = false;
 
-  constructor(private fb: FormBuilder, private electronService: ElectronService) {
+  constructor(
+    private fb: FormBuilder,
+    private electronService: ElectronService,
+    private confirmService: ConfirmService
+  ) {
     this.createForm();
   }
 
@@ -60,9 +65,19 @@ export class SettingsComponent implements OnInit {
     try {
       const result = await this.electronService.updateSettings(this.settingsForm.value);
       if (result.success) {
-        alert('Settings updated successfully!');
+        this.confirmService.alert({
+          title: 'Settings Updated',
+          message: 'Settings updated successfully.',
+          type: 'success'
+        });
         this.loadSettings();
-      } else { alert('Error: ' + result.message); }
+      } else {
+        this.confirmService.alert({
+          title: 'Update Failed',
+          message: result.message || 'Could not update settings',
+          type: 'danger'
+        });
+      }
     } catch (err) { console.error(err); } finally { this.saving = false; }
   }
 
@@ -71,8 +86,18 @@ export class SettingsComponent implements OnInit {
     try {
       const result = await this.electronService.createBackup();
       if (result.success) {
-        alert('Backup created at: ' + result.path);
-      } else { alert('Backup failed: ' + result.message); }
+        this.confirmService.alert({
+          title: 'Backup Created',
+          message: 'Backup created successfully.',
+          type: 'success'
+        });
+      } else {
+        this.confirmService.alert({
+          title: 'Backup Failed',
+          message: result.message || 'Backup failed',
+          type: 'danger'
+        });
+      }
     } catch (err) { console.error(err); } finally { this.backingUp = false; }
   }
 }

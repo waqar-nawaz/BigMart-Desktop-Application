@@ -5,6 +5,7 @@
  */
 
 const { getDb } = require('../../database/database');
+const AuditService = require('../../services/audit.service');
 
 module.exports = {
     getAll: (req, res) => {
@@ -25,8 +26,21 @@ module.exports = {
             const settingsData = req.body;
             const db = getDb();
 
+            const oldRows = db.prepare('SELECT key, value FROM settings').all();
+            const oldMap = Object.fromEntries(oldRows.map(r => [r.key, r.value]));
+
             Object.entries(settingsData).forEach(([key, value]) => {
                 db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime(\'now\'))').run(key, value);
+            });
+
+            const userId = (req.user && req.user.sub) || null;
+            AuditService.log({
+                userId,
+                action: 'settings.update',
+                tableName: 'settings',
+                recordId: null,
+                oldValues: oldMap,
+                newValues: settingsData
             });
 
             res.json({ success: true, message: 'Settings updated' });

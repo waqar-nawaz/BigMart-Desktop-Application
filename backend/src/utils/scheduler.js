@@ -14,7 +14,10 @@ const { getDb }   = require('../database/database');
 const notifier    = require('node-notifier');
 const logger      = require('./logger');
 const path        = require('path');
-const { app }     = require('electron');
+const os          = require('os');
+let electronApp;
+try { electronApp = require('electron').app; } catch { electronApp = null; }
+const app = electronApp || { getPath: () => path.join(os.homedir(), '.config', 'bigmart-pos') };
 
 function scheduleJobs(mainWindow) {
 

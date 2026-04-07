@@ -28,7 +28,10 @@ export class SalesComponent implements OnInit, OnDestroy {
     this.dateTo = today;
     this.loadSales();
     // Refresh less aggressively
-    this.refreshInterval = setInterval(() => this.loadSales(), 60000);
+    this.refreshInterval = setInterval(() => {
+      if (document.hidden) return;
+      this.loadSales();
+    }, 60000);
   }
 
   ngOnDestroy(): void {
