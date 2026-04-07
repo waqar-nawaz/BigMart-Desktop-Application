@@ -11,8 +11,15 @@
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const XLSX = require('xlsx');
-const { app } = require('electron');
+let electronApp;
+try {
+  // In standalone Node mode, requiring electron may throw.
+  electronApp = require('electron').app;
+} catch {
+  electronApp = null;
+}
 const { getDb } = require('../database/database');
 
 // Inline model class for portability
@@ -34,7 +41,10 @@ class PM extends BaseModel {
 }
 const productModel = new PM();
 
-const imagesPath = path.join(app.getPath('userData'), 'product-images');
+const userDataRoot = electronApp && typeof electronApp.getPath === 'function'
+  ? electronApp.getPath('userData')
+  : path.join(os.homedir(), '.config', 'bigmart-pos');
+const imagesPath = path.join(userDataRoot, 'product-images');
 if (!fs.existsSync(imagesPath)) fs.mkdirSync(imagesPath, { recursive: true });
 
 const ProductService = {
@@ -61,17 +71,28 @@ const ProductService = {
   },
 
   update(id, data) {
+    const existing = productModel.findById(id);
+    if (!existing) return { success: false, message: 'Product not found' };
     productModel.updateById(id, {
-      barcode: data.barcode,
-      name: data.name, description: data.description,
-      category_id: data.category_id, supplier_id: data.supplier_id,
-      unit: data.unit, cost_price: data.cost_price, selling_price: data.selling_price,
-      discount_price: data.discount_price, tax_rate: data.tax_rate,
-      stock_quantity: data.stock_quantity,
-      min_stock_level: data.min_stock_level, max_stock_level: data.max_stock_level,
-      reorder_point: data.reorder_point, is_active: data.is_active ? 1 : 0,
-      is_featured: data.is_featured ? 1 : 0, expiry_date: data.expiry_date,
-      location: data.location, weight: data.weight,
+      barcode: data.barcode ?? existing.barcode,
+      name: data.name ?? existing.name,
+      description: data.description ?? existing.description,
+      category_id: data.category_id ?? existing.category_id,
+      supplier_id: data.supplier_id ?? existing.supplier_id,
+      unit: data.unit ?? existing.unit,
+      cost_price: data.cost_price ?? existing.cost_price,
+      selling_price: data.selling_price ?? existing.selling_price,
+      discount_price: data.discount_price ?? existing.discount_price,
+      tax_rate: data.tax_rate ?? existing.tax_rate,
+      stock_quantity: data.stock_quantity ?? existing.stock_quantity,
+      min_stock_level: data.min_stock_level ?? existing.min_stock_level,
+      max_stock_level: data.max_stock_level ?? existing.max_stock_level,
+      reorder_point: data.reorder_point ?? existing.reorder_point,
+      is_active: (data.is_active === undefined) ? existing.is_active : (data.is_active ? 1 : 0),
+      is_featured: (data.is_featured === undefined) ? existing.is_featured : (data.is_featured ? 1 : 0),
+      expiry_date: data.expiry_date ?? existing.expiry_date,
+      location: data.location ?? existing.location,
+      weight: data.weight ?? existing.weight,
     });
     return { success: true };
   },
@@ -79,7 +100,9 @@ const ProductService = {
   softDelete(id) { productModel.softDelete(id); return { success: true }; },
 
   saveImage(productId, imageData, extension) {
-    const filename = `${productId}.${extension}`;
+    const safeExt = String(extension || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!safeExt) throw new Error('Invalid image extension');
+    const filename = `${productId}.${safeExt}`;
     const filepath = path.join(imagesPath, filename);
     const base64 = imageData.replace(/^data:image\/\w+;base64,/, '');
     fs.writeFileSync(filepath, Buffer.from(base64, 'base64'));
@@ -87,10 +110,20 @@ const ProductService = {
     return { success: true, path: filepath };
   },
 
+  getImageByProductId(productId) {
+    const row = productModel.findById(productId);
+    if (!row || !row.image_path) return null;
+    return this.getImage(row.image_path);
+  },
+
   getImage(imagePath) {
-    if (!imagePath || !fs.existsSync(imagePath)) return null;
-    const data = fs.readFileSync(imagePath);
-    const ext = path.extname(imagePath).slice(1);
+    if (!imagePath) return null;
+    // Only allow reads from our controlled images directory.
+    const safeName = path.basename(String(imagePath));
+    const safePath = path.join(imagesPath, safeName);
+    if (!fs.existsSync(safePath)) return null;
+    const data = fs.readFileSync(safePath);
+    const ext = path.extname(safePath).slice(1);
     return `data:image/${ext};base64,${data.toString('base64')}`;
   },
 

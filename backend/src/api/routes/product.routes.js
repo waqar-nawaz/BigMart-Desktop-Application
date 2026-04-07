@@ -75,8 +75,19 @@ module.exports = {
         }
     },
 
+    // Preferred safe endpoint: serve by product id
+    getImageByProductId: async (req, res) => {
+        try {
+            const image = await ProductService.getImageByProductId(req.params.id);
+            res.json({ success: true, image });
+        } catch (err) {
+            res.status(500).json({ success: false, message: err.message });
+        }
+    },
+
     getImage: async (req, res) => {
         try {
+            // Backward compatibility: only basename is used server-side.
             const image = await ProductService.getImage(req.params.path);
             res.json({ success: true, image });
         } catch (err) {

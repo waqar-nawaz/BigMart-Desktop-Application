@@ -5,6 +5,7 @@
  */
 
 const AuthService = require('../../services/auth.service');
+const { issueToken } = require('../../utils/auth');
 
 module.exports = {
     login: async (req, res) => {
@@ -15,7 +16,8 @@ module.exports = {
             }
             const result = await AuthService.loginWithPassword(username, password);
             if (result.success) {
-                return res.json(result);
+                const token = issueToken(result.user);
+                return res.json({ ...result, token });
             }
             return res.status(401).json(result);
         } catch (err) {
@@ -31,7 +33,8 @@ module.exports = {
             }
             const result = await AuthService.loginWithPin(pin);
             if (result.success) {
-                return res.json(result);
+                const token = issueToken(result.user);
+                return res.json({ ...result, token });
             }
             return res.status(401).json(result);
         } catch (err) {

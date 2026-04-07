@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const dayjs = require('dayjs');
 const { getDb } = require('../database/database');
 const SettingService = require('./setting.service');
+const AuditService = require('./audit.service');
 
 const SaleService = {
     generateInvoiceNumber() {
@@ -50,6 +51,60 @@ const SaleService = {
         // ✅ Use proper better-sqlite3 transaction with IMMEDIATE lock
         try {
             const createTransaction = db.transaction(() => {
+                if (!data || !Array.isArray(data.items) || data.items.length === 0) {
+                    throw new Error('Sale items required');
+                }
+                if (!data.cashier_id) {
+                    throw new Error('cashier_id required');
+                }
+
+                // Validate items and stock before writing anything
+                const productById = db.prepare('SELECT id,name,stock_quantity,selling_price,is_active FROM products WHERE id=?').get;
+                let computedSubtotal = 0;
+                let computedTax = 0;
+                let computedDiscount = 0;
+                let computedTotal = 0;
+
+                data.items.forEach((item) => {
+                    if (!item.product_id) throw new Error('item.product_id required');
+                    const qty = Number(item.quantity);
+                    if (!Number.isFinite(qty) || qty <= 0) throw new Error('Invalid item quantity');
+
+                    const product = productById(item.product_id);
+                    if (!product || product.is_active !== 1) throw new Error('Product not found or inactive');
+
+                    if (Number(product.stock_quantity) < qty) {
+                        throw new Error(`Insufficient stock for ${product.name}`);
+                    }
+
+                    const unitPrice = Number(item.unit_price ?? product.selling_price);
+                    if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error('Invalid unit price');
+
+                    const lineSubtotal = unitPrice * qty;
+                    const lineDiscount = Number(item.discount_amount || 0);
+                    const lineTax = Number(item.tax_amount || 0);
+                    const lineTotal = Number(item.total_price ?? (lineSubtotal - lineDiscount + lineTax));
+
+                    computedSubtotal += lineSubtotal;
+                    computedDiscount += lineDiscount;
+                    computedTax += lineTax;
+                    computedTotal += lineTotal;
+                });
+
+                const subtotal = Number(data.subtotal ?? computedSubtotal);
+                const discountAmount = Number(data.discount_amount ?? computedDiscount);
+                const taxAmount = Number(data.tax_amount ?? computedTax);
+                const totalAmount = Number(data.total_amount ?? computedTotal);
+
+                if (!Number.isFinite(subtotal) || !Number.isFinite(totalAmount)) throw new Error('Invalid totals');
+                if (totalAmount < 0) throw new Error('Invalid total amount');
+
+                const paidAmount = Number(data.paid_amount ?? totalAmount);
+                if (!Number.isFinite(paidAmount) || paidAmount < 0) throw new Error('Invalid paid amount');
+                if (paidAmount + 1e-6 < totalAmount && (data.payment_method || 'cash') !== 'credit') {
+                    throw new Error('Paid amount less than total');
+                }
+
                 // Generate invoice number INSIDE transaction with lock
                 invoiceNumber = SaleService.generateInvoiceNumber();
 
@@ -62,8 +117,8 @@ const SaleService = {
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
           `).run(
                     saleId, invoiceNumber, data.customer_id || null, data.cashier_id, data.shift_id || null,
-                    data.subtotal, data.discount_amount || 0, data.discount_type || 'fixed',
-                    data.tax_amount || 0, data.total_amount, data.paid_amount, data.change_amount || 0,
+                    subtotal, discountAmount, data.discount_type || 'fixed',
+                    taxAmount, totalAmount, paidAmount, data.change_amount || 0,
                     data.payment_method || 'cash', data.payment_reference || null,
                     'completed', data.notes || null,
                     data.loyalty_points_earned || 0, data.loyalty_points_used || 0
@@ -103,8 +158,17 @@ const SaleService = {
                 // 4. Update shift totals
                 if (data.shift_id) {
                     db.prepare('UPDATE shifts SET total_sales=total_sales+?, total_transactions=total_transactions+1 WHERE id=?')
-                        .run(data.total_amount, data.shift_id);
+                        .run(totalAmount, data.shift_id);
                 }
+
+                AuditService.log({
+                    userId: data.cashier_id,
+                    action: 'sale.create',
+                    tableName: 'sales',
+                    recordId: saleId,
+                    oldValues: null,
+                    newValues: { invoiceNumber, totalAmount, payment_method: data.payment_method || 'cash' },
+                });
             });
 
             // Execute with immediate lock to prevent race conditions
@@ -131,12 +195,34 @@ const SaleService = {
         return db.prepare(sql).all(...params);
     },
 
-    processReturn(saleId, reason, items) {
+    processReturn({ saleId, reason, userId }) {
         const db = getDb();
         db.transaction(() => {
-            db.prepare("UPDATE sales SET is_returned=1,return_reason=?,status='returned' WHERE id=?").run(reason, saleId);
-            items.forEach(item => {
-                db.prepare('UPDATE products SET stock_quantity=stock_quantity+? WHERE id=?').run(item.quantity, item.product_id);
+            const sale = db.prepare('SELECT * FROM sales WHERE id=?').get(saleId);
+            if (!sale) throw new Error('Sale not found');
+            if (sale.status === 'returned' || sale.is_returned === 1) throw new Error('Sale already returned');
+
+            db.prepare("UPDATE sales SET is_returned=1,return_reason=?,status='returned' WHERE id=?")
+                .run(reason || null, saleId);
+
+            const saleItems = db.prepare('SELECT product_id,quantity FROM sale_items WHERE sale_id=?').all(saleId);
+            saleItems.forEach(item => {
+                db.prepare('UPDATE products SET stock_quantity=stock_quantity+? WHERE id=?')
+                    .run(item.quantity, item.product_id);
+            });
+
+            if (sale.shift_id) {
+                db.prepare('UPDATE shifts SET total_sales=MAX(0,total_sales-?), total_transactions=MAX(0,total_transactions-1) WHERE id=?')
+                    .run(sale.total_amount, sale.shift_id);
+            }
+
+            AuditService.log({
+                userId,
+                action: 'sale.return',
+                tableName: 'sales',
+                recordId: saleId,
+                oldValues: { status: sale.status, is_returned: sale.is_returned },
+                newValues: { status: 'returned', return_reason: reason || null },
             });
         })();
         return { success: true };

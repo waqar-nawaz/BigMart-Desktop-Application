@@ -5,97 +5,15 @@
  */
 
 const { getDb } = require('../../database/database');
-const { v4: uuidv4 } = require('uuid');
-const dayjs = require('dayjs');
+const SaleService = require('../../services/sale.service');
 
 module.exports = {
     create: (req, res) => {
         try {
-            const { customer_id, cashier_id, items, payment_method, subtotal, discount_amount, tax_amount, total_amount, paid_amount, change_amount, notes } = req.body;
-
-            if (!items || !Array.isArray(items) || items.length === 0) {
-                return res.status(400).json({ success: false, message: 'Sale items required' });
-            }
-
-            const db = getDb();
-            const saleId = uuidv4();
-            const today = dayjs().format('YYYY-MM-DD');
-            const dateYYYYMMDD = today.replace(/-/g, '');
-
-            let invoiceNumber;
-
-            // ✅ Use atomic sequence table with IMMEDIATE transaction
-            try {
-                const createSaleTransaction = db.transaction(() => {
-                    // Step 1: Get or create sequence for today
-                    const seqCheck = db.prepare(`
-              SELECT next_seq FROM invoice_sequences WHERE date_key = ?
-            `).get(today);
-
-                    let nextSeq;
-                    if (seqCheck) {
-                        // Increment and update
-                        nextSeq = seqCheck.next_seq;
-                        db.prepare(`
-                UPDATE invoice_sequences 
-                SET next_seq = next_seq + 1 
-                WHERE date_key = ?
-              `).run(today);
-                    } else {
-                        // Create new sequence (first invoice of the day)
-                        nextSeq = 1;
-                        db.prepare(`
-                INSERT INTO invoice_sequences (date_key, next_seq)
-                VALUES (?, 2)
-              `).run(today);
-                    }
-
-                    // Format: INV-YYYYMMDD-0001
-                    invoiceNumber = `INV-${dateYYYYMMDD}-${String(nextSeq).padStart(4, '0')}`;
-
-                    // Step 2: Insert sale record
-                    db.prepare(`
-              INSERT INTO sales 
-              (id, invoice_number, customer_id, cashier_id, sale_date, subtotal, discount_amount, tax_amount, total_amount, paid_amount, change_amount, payment_method, status, notes)
-              VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?, ?, 'completed', ?)
-            `).run(
-                        saleId, invoiceNumber, customer_id || null, cashier_id || null,
-                        subtotal, discount_amount || 0, tax_amount || 0, total_amount, paid_amount, change_amount || 0,
-                        payment_method || 'cash', notes || null
-                    );
-
-                    // Step 3: Insert sale items and update stock
-                    items.forEach(item => {
-                        const itemId = uuidv4();
-
-                        // Insert item
-                        db.prepare(`
-                INSERT INTO sale_items 
-                (id, sale_id, product_id, product_name, barcode, quantity, unit_price, total_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-              `).run(itemId, saleId, item.product_id, item.product_name, item.barcode, item.quantity, item.unit_price, item.total_price);
-
-                        // Update product stock
-                        db.prepare(`
-                UPDATE products 
-                SET stock_quantity = stock_quantity - ?, updated_at = datetime('now')
-                WHERE id = ?
-              `).run(item.quantity, item.product_id);
-                    });
-                });
-
-                // Execute transaction with IMMEDIATE lock (serialized)
-                createSaleTransaction.immediate();
-
-                res.json({
-                    success: true,
-                    saleId,
-                    invoiceNumber,
-                    message: 'Sale completed successfully'
-                });
-            } catch (txnErr) {
-                throw txnErr;
-            }
+            const cashierId = req.body.cashier_id || (req.user && req.user.sub);
+            const payload = { ...req.body, cashier_id: cashierId };
+            const result = SaleService.create(payload);
+            res.json({ ...result, message: 'Sale completed successfully' });
         } catch (err) {
             console.error('[Sales Create Error]', err.message);
             res.status(500).json({ success: false, message: err.message });
@@ -185,31 +103,9 @@ module.exports = {
     return: (req, res) => {
         try {
             const { saleId, returnReason } = req.body;
-            const db = getDb();
-
-            const sale = db.prepare('SELECT * FROM sales WHERE id = ?').get(saleId);
-            if (!sale) {
-                return res.status(404).json({ success: false, message: 'Sale not found' });
-            }
-
-            // Mark as returned and reverse stock
-            db.prepare(`
-        UPDATE sales 
-        SET status = 'returned', is_returned = 1, return_reason = ?, updated_at = datetime('now')
-        WHERE id = ?
-      `).run(returnReason || null, saleId);
-
-            // Reverse stock for each item
-            const items = db.prepare('SELECT * FROM sale_items WHERE sale_id = ?').all(saleId);
-            items.forEach(item => {
-                db.prepare(`
-          UPDATE products 
-          SET stock_quantity = stock_quantity + ?, updated_at = datetime('now')
-          WHERE id = ?
-        `).run(item.quantity, item.product_id);
-            });
-
-            res.json({ success: true, message: 'Sale returned successfully' });
+            const userId = (req.user && req.user.sub) || null;
+            const result = SaleService.processReturn({ saleId, reason: returnReason, userId });
+            res.json({ ...result, message: 'Sale returned successfully' });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });
         }
