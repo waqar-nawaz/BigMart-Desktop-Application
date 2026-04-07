@@ -1,0 +1,60 @@
+<div class="login-wrapper">
+            <div class="login-container">
+                <div class="login-box">
+                    <h1>BigMart POS</h1>
+                    <p class="subtitle">Point of Sale System</p>
+
+                    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                        <div class="alert alert-error" *ngIf="error">
+                            <span>{{ error }}</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input
+                                id="username"
+                                type="text"
+                                class="form-control"
+                                formControlName="username"
+                                placeholder="Enter username"
+                                [class.is-invalid]="username?.touched && username?.invalid"
+                                autocomplete="off"
+                            />
+                            <div class="error-message" *ngIf="username?.touched && username?.errors?.['required']">
+                                Username is required
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input
+                                id="password"
+                                type="password"
+                                class="form-control"
+                                formControlName="password"
+                                placeholder="Enter password"
+                                [class.is-invalid]="password?.touched && password?.invalid"
+                                autocomplete="off"
+                            />
+                            <div class="error-message" *ngIf="password?.touched && password?.errors?.['required']">
+                                Password is required
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            [disabled]="loading || loginForm.invalid"
+                        >
+                            <span *ngIf="!loading">Sign In</span>
+                            <span *ngIf="loading">Signing In...</span>
+                        </button>
+                    </form>
+
+                        <div class="help-text">
+                            <p>Demo Credentials:</p>
+                            <p>Username: <strong>admin</strong><br />Password: <strong>admin123</strong></p>
+                        </div>
+                </div>
+            </div>
+        </div>

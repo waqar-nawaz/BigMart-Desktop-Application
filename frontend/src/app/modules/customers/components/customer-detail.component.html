@@ -1,0 +1,111 @@
+<div class="page-container" *ngIf="customer">
+  <header class="page-header">
+    <div class="page-title row">
+      <button class="btn-icon mr-4" (click)="goBack()">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div>
+        <h1>{{ customer.name }}</h1>
+        <p>Customer Profile & Purchase History</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="badge" [ngClass]="{
+        'badge-vip': customer.customer_type === 'vip',
+        'badge-regular': customer.customer_type === 'regular',
+        'badge-wholesale': customer.customer_type === 'wholesale'
+      }">{{ customer.customer_type | uppercase }}</span>
+    </div>
+  </header>
+
+  <div class="dashboard-grid">
+    <!-- Profile Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="text-lg font-bold">Contact Information</h2>
+      </div>
+      <div class="info-list">
+        <div class="info-item">
+          <label>Email</label>
+          <span>{{ customer.email || 'No email provided' }}</span>
+        </div>
+        <div class="info-item">
+          <label>Phone</label>
+          <span>{{ customer.phone || 'No phone provided' }}</span>
+        </div>
+        <div class="info-item">
+          <label>Address</label>
+          <span>{{ customer.address || 'No address' }}</span>
+        </div>
+        <div class="info-item">
+          <label>Join Date</label>
+          <span>{{ customer.created_at | date:'mediumDate' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="text-lg font-bold">Loyalty & Value</h2>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <span class="stat-label">Loyalty Points</span>
+          <span class="stat-val font-bold text-primary">{{ customer.loyalty_points }} pts</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Total Spend</span>
+          <span class="stat-val font-bold">Rs. {{ customer.total_purchases | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="card grid-span-all">
+      <div class="card-header">
+        <h2 class="text-lg font-bold">Purchase History</h2>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Date</th>
+              <th>Items</th>
+              <th>Total Amount</th>
+              <th>Payment</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let sale of history">
+              <td class="font-bold text-primary">{{ sale.invoice_number }}</td>
+              <td>{{ sale.sale_date | date:'medium' }}</td>
+              <td>{{ sale.items?.length || 0 }} items</td>
+              <td class="font-bold">Rs. {{ sale.total_amount | number:'1.2-2' }}</td>
+              <td>{{ sale.payment_method | titlecase }}</td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'badge-success': sale.status === 'completed',
+                  'badge-warning': sale.status === 'returned',
+                  'badge-danger': sale.status === 'void'
+                }">{{ sale.status }}</span>
+              </td>
+            </tr>
+            <tr *ngIf="!history.length">
+              <td colspan="6" class="text-center py-5 text-muted">This customer has no purchase history yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-container" *ngIf="loading">
+  <div class="card py-10 text-center">
+    <div class="loading-spinner"></div>
+    <p>Loading customer profile...</p>
+  </div>
+</div>

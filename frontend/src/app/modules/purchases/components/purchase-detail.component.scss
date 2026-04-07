@@ -1,0 +1,41 @@
+.page-container {
+  padding: var(--space-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+}
+
+.page-title h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: var(--text-primary);
+}
+
+.page-title p {
+  margin: 4px 0 0 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.table-card { padding: 0; }
+
+.bg-success-light {
+  background-color: rgba(34, 197, 94, 0.05);
+}
+
+.text-success {
+  color: var(--success);
+  font-weight: 700;
+}

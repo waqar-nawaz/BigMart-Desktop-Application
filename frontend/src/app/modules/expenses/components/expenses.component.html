@@ -1,0 +1,153 @@
+<div class="page-container">
+      <header class="page-header">
+        <div class="page-title">
+          <h1>Business Expenses</h1>
+          <p>Track store overheads, utilities, and daily costs</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" (click)="openAddModal()">
+            <span class="material-symbols-outlined">receipt_long</span>
+            Add Expense
+          </button>
+        </div>
+      </header>
+
+      <!-- Filters -->
+      <div class="card mb-4 filter-container">
+        <div class="search-box">
+          <span class="material-symbols-outlined">search</span>
+          <input 
+            type="text" 
+            placeholder="Search by description or reference..." 
+            [(ngModel)]="searchTerm" 
+            (input)="applyFilters()"
+          />
+        </div>
+        <div class="date-filters">
+          <div class="date-input">
+            <label>Category:</label>
+            <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
+              <option value="">All Categories</option>
+              <option value="utilities">Utilities</option>
+              <option value="rent">Rent</option>
+              <option value="salaries">Salaries</option>
+              <option value="supplies">Store Supplies</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expenses Table -->
+      <div class="card table-card">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Recorded By</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let expense of filteredExpenses">
+                <td>{{ expense.expense_date | date:'mediumDate' }}</td>
+                <td>
+                  <span class="badge" style="padding: 4px 8px; border-radius: 4px;" [ngClass]="{
+                    'badge-warning': expense.category === 'utilities',
+                    'badge-info': expense.category === 'supplies',
+                    'badge-primary': expense.category === 'rent',
+                    'badge-other': !['utilities', 'supplies', 'rent'].includes(expense.category)
+                  }">{{ expense.category }}</span>
+                </td>
+                <td class="description-cell">{{ expense.description }}</td>
+                <td class="font-bold text-danger">Rs. {{ expense.amount | number:'1.2-2' }}</td>
+                <td class="text-capitalize">{{ expense.payment_method }}</td>
+                <td>{{ expense.recorded_by_name || 'System' }}</td>
+              </tr>
+              <tr *ngIf="!loading && !filteredExpenses.length">
+                <td colspan="6" class="text-center py-5 text-muted">No expenses recorded for this period</td>
+              </tr>
+              <tr *ngIf="loading">
+                <td colspan="6" class="text-center py-5">Loading expenses...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <footer class="table-footer" *ngIf="filteredExpenses.length">
+          <div class="total-bar">
+            <span>Total Expenses: </span>
+            <span class="total-amount">Rs. {{ totalExpensesAmount | number:'1.2-2' }}</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Add Expense Modal -->
+    <div class="modal-overlay" *ngIf="showModal" (click)="showModal = false">
+      <div class="modal-content card" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <h2>Record New Expense</h2>
+          <button class="close-btn" (click)="showModal = false">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <form [formGroup]="expenseForm" (ngSubmit)="saveExpense()">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Amount <span class="text-danger">*</span></label>
+              <input type="number" formControlName="amount" placeholder="0.00" />
+            </div>
+
+            <div class="form-group">
+              <label>Category <span class="text-danger">*</span></label>
+              <select formControlName="category">
+                <option value="utilities">Utilities</option>
+                <option value="rent">Rent</option>
+                <option value="salaries">Salaries</option>
+                <option value="supplies">Store Supplies</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group span-2">
+              <label>Description <span class="text-danger">*</span></label>
+              <input type="text" formControlName="description" placeholder="E.g. Electricity bill for March" />
+            </div>
+
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" formControlName="expense_date" />
+            </div>
+
+            <div class="form-group">
+              <label>Payment Method</label>
+              <select formControlName="payment_method">
+                <option value="cash">Cash</option>
+                <option value="bank">Bank Transfer</option>
+                <option value="card">Card</option>
+              </select>
+            </div>
+
+            <div class="form-group span-2">
+              <label>Reference # (Optional)</label>
+              <input type="text" formControlName="reference" placeholder="Check #, Invoice #, etc." />
+            </div>
+          </div>
+
+          <footer class="modal-footer">
+            <button type="button" class="btn" (click)="showModal = false">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="expenseForm.invalid || saving">
+              <span class="material-symbols-outlined">save</span>
+              {{ saving ? 'Saving...' : 'Save Expense' }}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>

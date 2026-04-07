@@ -1,0 +1,136 @@
+<div class="page-container">
+      <header class="page-header">
+        <div class="page-title">
+          <h1>System Settings</h1>
+          <p>Configure store details, currency, and system behavior</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" (click)="saveSettings()" [disabled]="settingsForm.invalid || saving">
+            <span class="material-symbols-outlined">save</span>
+            {{ saving ? 'Saving...' : 'Save All Changes' }}
+          </button>
+        </div>
+      </header>
+
+      <div class="settings-grid">
+        <!-- Store Information -->
+        <section class="settings-card card">
+          <header class="card-header">
+            <span class="material-symbols-outlined">store</span>
+            <h3>Store Profile</h3>
+          </header>
+          <form [formGroup]="settingsForm" class="settings-form">
+            <div class="form-group">
+              <label>Store Name</label>
+              <input type="text" formControlName="store_name" />
+            </div>
+            <div class="form-group">
+              <label>Store Address</label>
+              <textarea formControlName="store_address" rows="2"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" formControlName="store_phone" />
+              </div>
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" formControlName="store_email" />
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- POS & Invoicing -->
+        <section class="settings-card card">
+          <header class="card-header">
+            <span class="material-symbols-outlined">receipt</span>
+            <h3>POS & Invoicing</h3>
+          </header>
+          <form [formGroup]="settingsForm" class="settings-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Currency Symbol</label>
+                <input type="text" formControlName="currency_symbol" placeholder="E.g. Rs." />
+              </div>
+              <div class="form-group">
+                <label>Default Tax Rate (%)</label>
+                <input type="number" formControlName="tax_rate" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Invoice Prefix</label>
+                <input type="text" formControlName="invoice_prefix" />
+              </div>
+              <div class="form-group">
+                <label>Receipt Footer Text</label>
+                <input type="text" formControlName="receipt_footer" />
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- Inventory Alerts -->
+        <section class="settings-card card">
+          <header class="card-header">
+            <span class="material-symbols-outlined">notification_important</span>
+            <h3>Inventory Controls</h3>
+          </header>
+          <form [formGroup]="settingsForm" class="settings-form">
+            <div class="form-group">
+              <label>Low Stock Warning Threshold</label>
+              <input type="number" formControlName="low_stock_threshold" />
+              <small class="help-text">Default value for new products.</small>
+            </div>
+            <div class="form-group toggle-group">
+              <div class="toggle-text">
+                <label>Auto-Backup Enabled</label>
+                <small>Automatically backup database on exit</small>
+              </div>
+              <input type="checkbox" formControlName="backup_enabled" class="toggle-switch" />
+            </div>
+          </form>
+        </section>
+
+        <!-- Appearance -->
+        <section class="settings-card card">
+          <header class="card-header">
+            <span class="material-symbols-outlined">palette</span>
+            <h3>Appearance</h3>
+          </header>
+          <form [formGroup]="settingsForm" class="settings-form">
+            <div class="form-group">
+              <label>Theme Preference</label>
+              <select formControlName="theme">
+                <option value="light">Light Mode</option>
+                <option value="dark">Dark Mode (Coming Soon)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Printer Interface</label>
+              <select formControlName="printer_interface">
+                <option value="system">System Default</option>
+                <option value="network">Network IP</option>
+                <option value="usb">Direct USB (ESC/POS)</option>
+              </select>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <div class="system-utility mt-5">
+        <div class="card utility-card">
+          <div class="utility-info">
+            <span class="material-symbols-outlined">database</span>
+            <div>
+              <h3>Database Management</h3>
+              <p>Create a backup of all settings, products, and sales records.</p>
+            </div>
+          </div>
+          <button class="btn btn-secondary" (click)="createBackup()" [disabled]="backingUp">
+            {{ backingUp ? 'Backing Up...' : 'Create Instant Backup' }}
+          </button>
+        </div>
+      </div>
+    </div>

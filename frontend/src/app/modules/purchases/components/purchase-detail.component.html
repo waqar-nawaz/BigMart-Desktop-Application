@@ -1,0 +1,101 @@
+<div class="page-container" *ngIf="purchase">
+  <header class="page-header">
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <button class="btn btn-ghost" routerLink="/purchases" title="Back to Purchases">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="page-title">
+        <h1>Purchase Order #{{ purchase.po_number }}</h1>
+        <p>Created on {{ purchase.created_at | date:'medium' }}</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="badge" [ngClass]="{
+        'badge-warning': purchase.status === 'pending',
+        'badge-info': purchase.status === 'partial',
+        'badge-success': purchase.status === 'received'
+      }" style="padding: 8px 16px; font-size: 1rem; border-radius: 6px;">
+        {{ purchase.status | titlecase }}
+      </span>
+      <button class="btn btn-primary" *ngIf="purchase.status !== 'received' && !receiving" (click)="toggleReceive()">
+        <span class="material-symbols-outlined">inventory_2</span>
+        Receive Items
+      </button>
+      <button class="btn" *ngIf="receiving" (click)="toggleReceive()">
+        Cancel Receiving
+      </button>
+    </div>
+  </header>
+
+  <div class="card mb-4">
+    <div style="padding: var(--space-lg); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl);">
+      <div>
+        <h3 style="margin-top: 0; color: var(--text-secondary); font-size: 0.875rem; text-transform: uppercase;">Supplier Details</h3>
+        <p style="font-weight: 600; font-size: 1.125rem; margin-bottom: 4px;">{{ purchase.supplier_name || 'Internal/Unknown' }}</p>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">PO Number: {{ purchase.po_number }}</p>
+      </div>
+      <div>
+        <h3 style="margin-top: 0; color: var(--text-secondary); font-size: 0.875rem; text-transform: uppercase;">Order Summary</h3>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary);">Expected Date:</span>
+            <span>{{ purchase.expected_date ? (purchase.expected_date | date:'mediumDate') : 'Not specified' }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary);">Total Amount:</span>
+            <span class="font-bold text-primary">Rs. {{ purchase.total_amount | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <header style="padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--border-color);">
+      <h3 style="margin: 0; font-size: 1.125rem;">Order Items</h3>
+    </header>
+    
+    <div class="table-container">
+      <table style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Ordered</th>
+            <th>Received</th>
+            <th>Unit Cost</th>
+            <th>Total Cost</th>
+            <th *ngIf="receiving">Receive Now</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of purchase.items" [class.bg-success-light]="item.quantity_received >= item.quantity_ordered">
+            <td class="font-bold">{{ item.product_name }}</td>
+            <td>{{ item.quantity_ordered }}</td>
+            <td [class.text-success]="item.quantity_received >= item.quantity_ordered">{{ item.quantity_received || 0 }}</td>
+            <td>Rs. {{ item.unit_cost | number:'1.2-2' }}</td>
+            <td class="font-bold">Rs. {{ item.total_cost | number:'1.2-2' }}</td>
+            <td *ngIf="receiving">
+              <input type="number" [(ngModel)]="item.quantity_received" min="0" [max]="item.quantity_ordered"
+                style="width: 80px; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color);" 
+                [disabled]="item.quantity_received >= item.quantity_ordered && !receiving"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer *ngIf="receiving" style="padding: var(--space-lg); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; background: var(--bg-app);">
+      <button class="btn btn-primary" (click)="submitReceive()" [disabled]="saving">
+        <span class="material-symbols-outlined">inventory_2</span>
+        {{ saving ? 'Processing...' : 'Confirm Items Received' }}
+      </button>
+    </footer>
+  </div>
+</div>
+
+<div class="page-container" *ngIf="loading">
+  <div style="text-align: center; padding: 4rem; color: var(--text-muted);">
+    Loading purchase order details...
+  </div>
+</div>

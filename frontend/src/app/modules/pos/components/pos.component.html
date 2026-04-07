@@ -1,0 +1,194 @@
+<div class="pos-layout">
+      <!-- Left side: Products Grid -->
+      <section class="products-section">
+        <header class="pos-header">
+          <div class="search-bar">
+            <span class="material-symbols-outlined">search</span>
+            <input 
+              #searchInput
+              type="text" 
+              placeholder="Search by product name or barcode (F1)..." 
+              [(ngModel)]="searchTerm" 
+              (input)="applyFilters()"
+            />
+          </div>
+          <div class="category-tabs">
+            <button 
+              class="tab-btn" 
+              [class.active]="selectedCategory === ''" 
+              (click)="selectCategory('')"
+            >All</button>
+            <button 
+              *ngFor="let cat of categories" 
+              class="tab-btn" 
+              [class.active]="selectedCategory === cat.id"
+              (click)="selectCategory(cat.id)"
+            >{{ cat.name }}</button>
+          </div>
+        </header>
+
+        <div class="products-grid">
+          <div 
+            *ngFor="let product of filteredProducts" 
+            class="product-card" 
+            (click)="addToCart(product)"
+            [class.out-of-stock]="product.stock_quantity <= 0"
+          >
+            <div class="product-icon" [style.backgroundColor]="product.category_color + '20'">
+              <span class="material-symbols-outlined" [style.color]="product.category_color">
+                {{ product.category_icon || 'package' }}
+              </span>
+            </div>
+            <div class="product-info">
+              <span class="product-name">{{ product.name }}</span>
+              <span class="product-price">Rs. {{ product.selling_price | number:'1.2-2' }}</span>
+              <span class="stock-badge" [class.low-stock]="product.stock_quantity <= product.min_stock_level">
+                Stock: {{ product.stock_quantity }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right side: Cart Sidebar -->
+      <aside class="cart-sidebar">
+        <header class="cart-header">
+          <h2>Current Order</h2>
+          <button class="btn btn-ghost danger" (click)="clearCart()" *ngIf="cart.length">
+            <span class="material-symbols-outlined">delete_sweep</span>
+            Clear
+          </button>
+        </header>
+
+        <!-- Customer selection -->
+        <div class="customer-selector">
+          <div class="customer-info" *ngIf="selectedCustomer">
+            <div class="customer-details">
+              <strong>{{ selectedCustomer.name }}</strong>
+              <small>{{ selectedCustomer.phone || 'No phone' }}</small>
+            </div>
+            <button class="btn-icon" (click)="selectedCustomer = null">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div class="customer-input" *ngIf="!selectedCustomer">
+            <span class="material-symbols-outlined">person</span>
+            <input 
+              type="text" 
+              placeholder="Search customer by name or phone..." 
+              [(ngModel)]="customerSearch"
+              (input)="applyFilters()"
+              (focus)="showCustomerDropdown = true; applyFilters()"
+              (blur)="hideDropdown()"
+            />
+            
+            <div class="customer-dropdown" *ngIf="showCustomerDropdown && filteredCustomers.length">
+              <div 
+                *ngFor="let cust of filteredCustomers" 
+                class="customer-item" 
+                (mousedown)="selectCustomer(cust)"
+              >
+                <span>{{ cust.name }}</span>
+                <small><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">call</span> {{ cust.phone || 'No phone' }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cart-items">
+          <div *ngFor="let item of cart" class="cart-item">
+            <div class="item-main">
+              <div class="item-name-qty">
+                <span class="item-name">{{ item.product_name }}</span>
+                <span class="item-price">&#64; Rs. {{ item.unit_price | number:'1.2-2' }}</span>
+              </div>
+              <button class="btn-icon text-danger" (click)="removeFromCart(item)" title="Remove item">
+                <span class="material-symbols-outlined">delete_outline</span>
+              </button>
+            </div>
+            <div class="item-controls">
+              <div class="qty-toggle">
+                <button class="btn-icon" (click)="updateQuantity(item, -1)">
+                  <span class="material-symbols-outlined">remove</span>
+                </button>
+                <span class="qty">{{ item.quantity }}</span>
+                <button class="btn-icon" (click)="updateQuantity(item, 1)">
+                  <span class="material-symbols-outlined">add</span>
+                </button>
+              </div>
+              <span class="item-total">Rs. {{ item.total_price | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="empty-cart" *ngIf="!cart.length">
+            <span class="material-symbols-outlined">shopping_cart</span>
+            <p>Cart is empty</p>
+          </div>
+        </div>
+
+        <footer class="cart-footer">
+          <div class="totals">
+            <div class="total-row"><span>Subtotal</span><span>Rs. {{ subtotal | number:'1.2-2' }}</span></div>
+            <div class="total-row" style="align-items: center;">
+              <span>Discount</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="number" [(ngModel)]="discountInput" min="0" 
+                  style="width: 80px; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; text-align: right; background: var(--bg-app); color: var(--text-primary);" />
+              </div>
+            </div>
+            <div class="total-row grand-total"><span>Total Payable</span><span>Rs. {{ total | number:'1.2-2' }}</span></div>
+          </div>
+          <div class="checkout-actions">
+            <button 
+              class="checkout-btn" 
+              [disabled]="!cart.length || processing" 
+              (click)="checkout()"
+            >
+              {{ processing ? 'Processing...' : 'Complete Payment' }}
+            </button>
+          </div>
+        </footer>
+      </aside>
+    </div>
+
+    <!-- Payment Modal (Simplistic for now) -->
+    <div class="modal-overlay" *ngIf="showPaymentModal">
+      <div class="modal-content payment-modal card">
+        <header class="modal-header">
+          <h2>Payment Confirmation</h2>
+          <button class="close-btn" (click)="showPaymentModal = false">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+        <div class="payment-body">
+          <div class="amount-card">
+            <span class="label">Total Amount</span>
+            <span class="value">Rs. {{ total | number:'1.2-2' }}</span>
+          </div>
+          
+          <div class="payment-methods">
+            <button 
+              class="method-btn" 
+              [class.active]="paymentMethod === 'cash'"
+              (click)="paymentMethod = 'cash'"
+            >
+              <span class="material-symbols-outlined">payments</span>
+              Cash
+            </button>
+            <button 
+              class="method-btn" 
+              [class.active]="paymentMethod === 'card'"
+              (click)="paymentMethod = 'card'"
+            >
+              <span class="material-symbols-outlined">credit_card</span>
+              Card
+            </button>
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn" (click)="showPaymentModal = false" [disabled]="processing">Cancel</button>
+          <button class="btn btn-primary" (click)="confirmCheckout()" [disabled]="processing">
+            {{ processing ? 'Processing...' : 'Confirm Payment' }}
+          </button>
+        </footer>
+      </div>
+    </div>

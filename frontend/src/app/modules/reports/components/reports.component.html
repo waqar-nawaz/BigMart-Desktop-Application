@@ -1,0 +1,206 @@
+<div class="page-container">
+      <header class="page-header">
+        <div class="page-title">
+          <h1>Analytics & Reports</h1>
+          <p>Analyze business performance and sales trends</p>
+        </div>
+        <div class="header-actions">
+          <div class="date-range-picker card">
+            <div class="date-input">
+              <label>From</label>
+              <input type="date" [(ngModel)]="dateFrom" (change)="loadReport()" />
+            </div>
+            <div class="date-input">
+              <label>To</label>
+              <input type="date" [(ngModel)]="dateTo" (change)="loadReport()" />
+            </div>
+          </div>
+          <button class="btn btn-secondary" (click)="exportToExcel()" [disabled]="exporting">
+            <span class="material-symbols-outlined">download</span>
+            {{ exporting ? 'Exporting...' : 'Export Excel' }}
+          </button>
+        </div>
+      </header>
+
+      <div class="report-dashboard" *ngIf="report; else loadingState">
+        <!-- Summary Cards -->
+        <div class="summary-row">
+          <div class="card stat-card blue">
+            <div class="stat-icon"><span class="material-symbols-outlined">payments</span></div>
+            <div class="stat-content">
+              <span>Total Revenue</span>
+              <h2>Rs. {{ totalRevenue | number:'1.2-2' }}</h2>
+              <small>{{ totalTransactions }} Transactions</small>
+            </div>
+          </div>
+          <div class="card stat-card green">
+            <div class="stat-icon"><span class="material-symbols-outlined">trending_up</span></div>
+            <div class="stat-content">
+              <span>Gross Profit</span>
+              <h2>Rs. {{ totalProfit | number:'1.2-2' }}</h2>
+              <small>Margin: {{ (totalRevenue ? (totalProfit / totalRevenue * 100) : 0) | number:'1.0-1' }}%</small>
+            </div>
+          </div>
+          <div class="card stat-card red">
+            <div class="stat-icon"><span class="material-symbols-outlined">money_off</span></div>
+            <div class="stat-content">
+              <span>Total Expenses</span>
+              <h2>Rs. {{ totalExpenses | number:'1.2-2' }}</h2>
+              <small>{{ report.expenses.length || 0 }} Expense Categories</small>
+            </div>
+          </div>
+          <div class="card stat-card indigo">
+            <div class="stat-icon"><span class="material-symbols-outlined">account_balance_wallet</span></div>
+            <div class="stat-content">
+              <span>Net Income</span>
+              <h2>Rs. {{ (totalRevenue - totalExpenses) | number:'1.2-2' }}</h2>
+              <small>Subtotal minus expenses</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="report-grid">
+          <!-- Top Products -->
+          <section class="report-card card">
+            <header class="card-header">
+              <h3>Top Selling Products</h3>
+              <span>By Revenue</span>
+            </header>
+            <div class="report-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Revenue</th>
+                    <th>Profit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of report.topProducts">
+                    <td class="font-bold">{{ p.name }}</td>
+                    <td>{{ p.qty_sold }}</td>
+                    <td class="font-bold">Rs. {{ p.revenue | number:'1.0-0' }}</td>
+                    <td class="text-success">Rs. {{ p.profit | number:'1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Expenses Breakdown -->
+          <section class="report-card card">
+            <header class="card-header">
+              <h3>Expense Categories</h3>
+              <span>By category</span>
+            </header>
+            <div class="report-table">
+              <table *ngIf="report.expenses.length > 0; else noExpenses">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let e of report.expenses">
+                    <td class="font-bold">{{ e.category }}</td>
+                    <td class="text-danger">Rs. {{ e.total | number:'1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <ng-template #noExpenses>
+                <div style="padding: 20px; text-align: center; color: var(--text-muted);">No expenses recorded</div>
+              </ng-template>
+            </div>
+          </section>
+
+          <!-- Net Income Summary -->
+          <section class="report-card card">
+            <header class="card-header">
+              <h3>Financial Summary</h3>
+              <span>Overall breakdown</span>
+            </header>
+            <div class="payment-list">
+              <div class="payment-item">
+                <div class="payment-label">
+                  <span class="material-symbols-outlined">payments</span>
+                  <span>Total Revenue</span>
+                </div>
+                <div class="payment-value">
+                  <span class="amount font-bold">Rs. {{ totalRevenue | number:'1.0-0' }}</span>
+                </div>
+              </div>
+              <div class="payment-item">
+                <div class="payment-label">
+                  <span class="material-symbols-outlined">trending_up</span>
+                  <span>Total Profit</span>
+                </div>
+                <div class="payment-value">
+                  <span class="amount font-bold">Rs. {{ totalProfit | number:'1.0-0' }}</span>
+                </div>
+              </div>
+              <div class="payment-item">
+                <div class="payment-label">
+                  <span class="material-symbols-outlined">money_off</span>
+                  <span>Total Expenses</span>
+                </div>
+                <div class="payment-value">
+                  <span class="amount font-bold">Rs. {{ totalExpenses | number:'1.0-0' }}</span>
+                </div>
+              </div>
+              <div class="payment-item">
+                <div class="payment-label">
+                  <span class="material-symbols-outlined">account_balance_wallet</span>
+                  <span>Net Income</span>
+                </div>
+                <div class="payment-value">
+                  <span class="amount font-bold">Rs. {{ (totalRevenue - totalExpenses) | number:'1.0-0' }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Daily Trend -->
+          <section class="report-card card span-2">
+            <header class="card-header">
+              <h3>Sales History Table</h3>
+              <span>Detailed performance by day</span>
+            </header>
+            <div class="report-table overflow-visible">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Count</th>
+                    <th>Discounts</th>
+                    <th>Revenue</th>
+                    <th>Growth</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let d of report.dailySales">
+                    <td>{{ d.date | date:'fullDate' }}</td>
+                    <td>{{ d.transactions }}</td>
+                    <td class="text-danger">- Rs. {{ d.discount }}</td>
+                    <td class="font-bold">Rs. {{ d.revenue | number:'1.2-2' }}</td>
+                    <td>
+                      <span class="trend-indicator up" *ngIf="d.revenue > 1000">
+                        <span class="material-symbols-outlined">arrow_upward</span>
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <ng-template #loadingState>
+        <div class="loading-state card">
+          <div class="spinner"></div>
+          <p>Fetching report data...</p>
+        </div>
+      </ng-template>
+    </div>

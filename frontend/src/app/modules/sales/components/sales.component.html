@@ -1,0 +1,210 @@
+<div class="page-container">
+      <header class="page-header">
+        <div class="page-title">
+          <h1>Sales History</h1>
+          <p>Track all transactions and invoice records</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" (click)="loadSales()">
+            <span class="material-symbols-outlined">refresh</span>
+            Refresh List
+          </button>
+        </div>
+      </header>
+
+      <!-- Filters -->
+      <div class="card mb-4 filter-container">
+        <div class="search-box">
+          <span class="material-symbols-outlined">search</span>
+          <input 
+            type="text" 
+            placeholder="Search by invoice number or customer name..." 
+            [(ngModel)]="searchTerm" 
+            (input)="applyFilters()"
+          />
+        </div>
+        <div class="date-filters">
+          <div class="date-input">
+            <label>From:</label>
+            <input type="date" [(ngModel)]="dateFrom" (change)="loadSales()" />
+          </div>
+          <div class="date-input">
+            <label>To:</label>
+            <input type="date" [(ngModel)]="dateTo" (change)="loadSales()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Sales Table -->
+      <div class="card table-card">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Date & Time</th>
+                <th>Customer Name</th>
+                <th>Total Items</th>
+                <th>Amount Paid</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let sale of filteredSales">
+                <td class="font-bold text-primary">{{ sale.invoice_number }}</td>
+                <td>
+                  <div class="date-stack">
+                    <span class="date">{{ sale.sale_date | date:'mediumDate' }}</span>
+                    <span class="time text-muted">{{ sale.sale_date | date:'shortTime' }}</span>
+                  </div>
+                </td>
+                <td>{{ sale.customer_name || 'Walk-in Customer' }}</td>
+                <td>{{ sale.items?.length || 0 }}</td>
+                <td class="font-bold">Rs. {{ sale.total_amount | number:'1.2-2' }}</td>
+                <td>
+                  <span class="payment-method">
+                    <span class="material-symbols-outlined text-xs">
+                      {{ sale.payment_method === 'cash' ? 'payments' : 'credit_card' }}
+                    </span>
+                    {{ sale.payment_method }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" style="padding: 4px 8px; border-radius: 4px;" [ngClass]="{
+                    'badge-success': sale.status === 'completed',
+                    'badge-warning': sale.status === 'returned',
+                    'badge-danger': sale.status === 'void'
+                  }">{{ sale.status }}</span>
+                </td>
+                <td>
+                  <div class="action-buttons" style="display: flex; gap: 8px;">
+                    <button class="btn-icon" style="color: #eab308;" *ngIf="sale.status === 'completed'" (click)="openReturnModal(sale)" title="Process Return">
+                      <span class="material-symbols-outlined">assignment_return</span>
+                    </button>
+                    <button class="btn-icon" (click)="viewDetails(sale)" title="View Invoice">
+                      <span class="material-symbols-outlined">visibility</span>
+                    </button>
+                    <button class="btn-icon" (click)="printReceipt(sale)" title="Print Receipt">
+                      <span class="material-symbols-outlined">print</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="!loading && !filteredSales.length">
+                <td colspan="8" class="text-center py-5 text-muted">No sales found for the selected period</td>
+              </tr>
+              <tr *ngIf="loading">
+                <td colspan="8" class="text-center py-5">Loading records...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sale Detail Modal -->
+    <div class="modal-overlay" *ngIf="selectedSale" (click)="selectedSale = null">
+      <div class="modal-content invoice-modal card" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <div class="invoice-title">
+            <h2>Invoice Details</h2>
+            <span class="invoice-id">{{ selectedSale.invoice_number }}</span>
+          </div>
+          <button class="close-btn" (click)="selectedSale = null">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <div class="invoice-body">
+          <div class="invoice-info-grid">
+            <div class="info-block">
+              <label>Date</label>
+              <span>{{ selectedSale.sale_date | date:'medium' }}</span>
+            </div>
+            <div class="info-block">
+              <label>Customer</label>
+              <span>{{ selectedSale.customer_name || 'Walk-in Customer' }}</span>
+            </div>
+            <div class="info-block">
+              <label>Cashier</label>
+              <span>{{ selectedSale.cashier_name || 'System' }}</span>
+            </div>
+            <div class="info-block">
+              <label>Payment Method</label>
+              <span class="text-capitalize">{{ selectedSale.payment_method }}</span>
+            </div>
+          </div>
+
+          <div class="invoice-table mt-5">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of selectedSale.items">
+                  <td>{{ item.product_name }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td>Rs. {{ item.unit_price | number:'1.2-2' }}</td>
+                  <td class="font-bold">Rs. {{ item.total_price | number:'1.2-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="invoice-totals">
+            <div class="total-line"><span>Subtotal</span><span>Rs. {{ selectedSale.subtotal | number:'1.2-2' }}</span></div>
+            <div class="total-line"><span>Total Paid</span><span class="grand-total">Rs. {{ selectedSale.paid_amount | number:'1.2-2' }}</span></div>
+          </div>
+        </div>
+
+        <footer class="modal-footer">
+          <button class="btn btn-primary" (click)="printReceipt(selectedSale)">
+            <span class="material-symbols-outlined">print</span>
+            Print Receipt
+          </button>
+        </footer>
+    </div>
+
+    <!-- Sale Return Modal -->
+    <div class="modal-overlay" *ngIf="showReturnModal" (click)="showReturnModal = false">
+      <div class="modal-content card" (click)="$event.stopPropagation()">
+        <header class="modal-header header-warning" style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-lg); border-bottom: 1px solid var(--border-color); background: rgba(234, 179, 8, 0.05); color: #eab308;">
+          <div style="display: flex; align-items: center; gap: var(--space-md);">
+            <span class="material-symbols-outlined">assignment_return</span>
+            <h2 style="margin: 0;">Process Return</h2>
+          </div>
+          <button class="close-btn" (click)="showReturnModal = false" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <div style="padding: var(--space-lg);">
+          <div style="padding: 12px; background: rgba(234, 179, 8, 0.1); border-left: 4px solid #eab308; margin-bottom: 20px; color: var(--text-primary);">
+            <strong>Warning:</strong> You are about to return Invoice #{{ selectedSale.invoice_number }}.
+            This will refund <strong style="color: #eab308;">Rs. {{ selectedSale.total_amount | number:'1.2-2' }}</strong> and restock the items.
+          </div>
+          <div class="form-group">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Reason for Return <span class="text-danger">*</span></label>
+            <textarea [(ngModel)]="returnReason" rows="3" placeholder="e.g. Customer changed mind, defective product..." 
+              style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); color: var(--text-primary); outline: none; font-family: inherit; font-size: 0.875rem;"></textarea>
+          </div>
+        </div>
+
+        <footer class="modal-footer" style="padding: var(--space-lg); display: flex; gap: var(--space-md); justify-content: flex-end; border-top: 1px solid var(--border-color); background: var(--bg-app);">
+          <button class="btn" (click)="showReturnModal = false" [disabled]="returnProcessing" style="padding: 8px 16px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); cursor: pointer;">Cancel</button>
+          <button class="btn btn-warning" (click)="processReturn()" [disabled]="!returnReason || returnProcessing" 
+            style="padding: 8px 16px; border-radius: 4px; border: none; background: #eab308; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined">assignment_return</span>
+            {{ returnProcessing ? 'Processing...' : 'Confirm Return' }}
+          </button>
+        </footer>
+      </div>
+    </div>
+</div>

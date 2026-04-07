@@ -1,0 +1,66 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build artifacts
+dist/
+release/
+out/
+bin/
+obj/
+*.bak
+*.tmp
+*.temp
+
+# Angular specific
+.angular/
+
+# IDE settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.history/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Testing
+coverage/
+*.lcov
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Databases (if you want to keep data out of git)
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+backups/
+
+# System-level configuration files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Electron
+*.asar
+dist-js/
+dist-electron/

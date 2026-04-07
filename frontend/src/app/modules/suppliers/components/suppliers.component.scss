@@ -1,0 +1,14 @@
+.search-card { padding: var(--space-md); background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); }
+    .search-box { flex: 1; display: flex; align-items: center; background: var(--bg-app); padding: 0 var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-color); }
+    .search-box input { border: none; background: none; padding: 0.75rem; width: 100%; outline: none; }
+
+    .modal-content { width: 550px; max-width: 90vw; }
+    
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .span-2 { grid-column: span 2; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 0.825rem; font-weight: 600; color: var(--text-secondary); }
+
+    .action-buttons { display: flex; gap: 8px; justify-content: center; }
+    .badge-info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .mb-4 { margin-bottom: 1rem; }

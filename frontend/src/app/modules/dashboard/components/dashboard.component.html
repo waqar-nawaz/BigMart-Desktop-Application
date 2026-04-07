@@ -1,0 +1,160 @@
+<div class="page-container">
+      <header class="page-header">
+        <div class="page-title">
+          <h1>Dashboard Overview</h1>
+          <p>Real-time statistics and recent activity</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" (click)="refreshData()">
+            <span class="material-symbols-outlined">sync</span>
+            Refresh
+          </button>
+        </div>
+      </header>
+      
+      <!-- Charts Row -->
+      <div class="dashboard-charts mb-4">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2 class="text-lg font-bold">Sales Trend (Today)</h2>
+            <span class="text-xs text-muted">Amount by Hour</span>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-container" *ngFor="let s of stats?.salesByHour">
+              <div class="bar-fill" [style.height.%]="getSalesPercent(s.total)">
+                <div class="bar-tooltip">Rs. {{ s.total | number }}</div>
+              </div>
+              <span class="bar-label">{{ s.hour }}</span>
+            </div>
+            <div *ngIf="!stats?.salesByHour?.length" class="empty-chart">No sales recorded yet today</div>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2 class="text-lg font-bold">Revenue by Category</h2>
+          </div>
+          <div class="category-chart">
+            <div class="cat-progress" *ngFor="let c of stats?.categoryRevenue">
+              <div class="cat-info">
+                <span>{{ c.name }}</span>
+                <span>Rs. {{ c.revenue | number:'1.0-0' }}</span>
+              </div>
+              <div class="cat-bar-bg">
+                <div class="cat-bar-fill" [style.width.%]="getCategoryPercent(c.revenue)" [style.background]="c.color || '#4f46e5'"></div>
+              </div>
+            </div>
+            <div *ngIf="!stats?.categoryRevenue?.length" class="empty-chart">No category data yet</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="stats-grid">
+        <div class="card stat-card">
+          <div class="stat-icon sales">
+            <span class="material-symbols-outlined">payments</span>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">Today's Sales</span>
+            <span class="stat-value">Rs. {{ stats?.todaySales?.total || 0 | number:'1.2-2' }}</span>
+            <span class="stat-sub">{{ stats?.todaySales?.count || 0 }} transactions</span>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <div class="stat-icon stock">
+            <span class="material-symbols-outlined">warning</span>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">Low Stock</span>
+            <span class="stat-value text-danger" [class.text-muted]="!stats?.lowStockCount?.count">{{ stats?.lowStockCount?.count || 0 }} Items</span>
+            <span class="stat-sub">Requires attention</span>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <div class="stat-icon customers">
+            <span class="material-symbols-outlined">person_add</span>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">Total Customers</span>
+            <span class="stat-value">{{ stats?.totalCustomers?.count || 0 }}</span>
+            <span class="stat-sub">Registered members</span>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <div class="stat-icon orders">
+            <span class="material-symbols-outlined">local_shipping</span>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">Pending POs</span>
+            <span class="stat-value">{{ stats?.pendingPOs?.count || 0 }}</span>
+            <span class="stat-sub">Purchase orders</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Recent Sales -->
+        <div class="card grid-span-2">
+          <div class="card-header">
+            <h2 class="text-lg font-bold">Recent Transactions</h2>
+            <a routerLink="/sales" class="text-sm text-primary">View All</a>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Customer</th>
+                  <th>Date</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let sale of stats?.recentSales">
+                  <td class="font-bold">{{ sale.invoice_number }}</td>
+                  <td>{{ sale.customer_name || 'Walk-in Customer' }}</td>
+                  <td>{{ sale.sale_date | date:'shortTime' }}</td>
+                  <td>{{ sale.items?.length || 0 }}</td>
+                  <td class="font-bold">Rs. {{ sale.total_amount | number:'1.2-2' }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="{
+                      'badge-success': sale.status === 'completed',
+                      'badge-warning': sale.status === 'returned',
+                      'badge-danger': sale.status === 'void'
+                    }">{{ sale.status }}</span>
+                  </td>
+                </tr>
+                <tr *ngIf="!stats?.recentSales?.length">
+                  <td colspan="6" class="text-center text-muted py-5">No recent transactions found</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="text-lg font-bold">Top Products</h2>
+          </div>
+          <div class="top-items-list">
+            <div class="top-item" *ngFor="let prod of stats?.topProducts">
+              <div class="item-name">
+                <span class="font-bold">{{ prod.name }}</span>
+                <span class="text-xs text-muted">{{ prod.qty_sold }} units sold</span>
+              </div>
+              <div class="item-value">Rs. {{ prod.revenue | number:'1.2-2' }}</div>
+            </div>
+            <div *ngIf="!stats?.topProducts?.length" class="text-center text-muted py-5">
+              No sales data yet
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

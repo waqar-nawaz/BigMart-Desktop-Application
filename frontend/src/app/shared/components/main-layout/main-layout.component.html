@@ -1,0 +1,115 @@
+<div class="app-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span class="material-symbols-outlined logo-icon">storefront</span>
+          <span class="logo-text">BigMart POS</span>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span>Dashboard</span>
+          </a>
+          <a routerLink="/pos" routerLinkActive="active" class="nav-item">
+            <span class="material-symbols-outlined">point_of_sale</span>
+            <span>Point of Sale</span>
+          </a>
+          <a routerLink="/inventory" routerLinkActive="active" class="nav-item">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <span>Inventory</span>
+          </a>
+          <a routerLink="/sales" routerLinkActive="active" class="nav-item">
+            <span class="material-symbols-outlined">receipt_long</span>
+            <span>Sales History</span>
+          </a>
+          <a routerLink="/customers" routerLinkActive="active" class="nav-item">
+            <span class="material-symbols-outlined">group</span>
+            <span>Customers</span>
+          </a>
+          <a routerLink="/suppliers" routerLinkActive="active" class="nav-item">
+            <span class="material-symbols-outlined">local_shipping</span>
+            <span>Suppliers</span>
+          </a>
+          <a routerLink="/expenses" routerLinkActive="active" class="nav-item">
+            <span class="material-symbols-outlined">payments</span>
+            <span>Expenses</span>
+          </a>
+          
+          <div class="nav-divider" *ngIf="authService.isAdmin">Admin</div>
+          
+          <a routerLink="/reports" routerLinkActive="active" class="nav-item" *ngIf="authService.isAdmin">
+            <span class="material-symbols-outlined">monitoring</span>
+            <span>Reports</span>
+          </a>
+          <a routerLink="/employees" routerLinkActive="active" class="nav-item" *ngIf="authService.isAdmin">
+            <span class="material-symbols-outlined">badge</span>
+            <span>Employees</span>
+          </a>
+          <a routerLink="/settings" routerLinkActive="active" class="nav-item" *ngIf="authService.isAdmin">
+            <span class="material-symbols-outlined">settings</span>
+            <span>Settings</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <div class="user-avatar">
+              {{ authService.currentUser?.full_name?.charAt(0) }}
+            </div>
+            <div class="user-details">
+              <span class="user-name">{{ authService.currentUser?.full_name }}</span>
+              <span class="user-role">{{ authService.currentUser?.role }}</span>
+            </div>
+          </div>
+          <button (click)="logout()" class="logout-btn" title="Logout">
+            <span class="material-symbols-outlined">logout</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-container">
+        <!-- Top Header -->
+        <header class="top-bar">
+          <div class="top-bar-left">
+            <button class="menu-toggle">
+              <span class="material-symbols-outlined">menu</span>
+            </button>
+          </div>
+          <div class="top-bar-right">
+            <div class="header-actions">
+              <span class="material-symbols-outlined action-icon" (click)="toggleTheme()" [title]="isDarkMode ? 'Switch to Light' : 'Switch to Dark'">
+                {{ isDarkMode ? 'light_mode' : 'dark_mode' }}
+              </span>
+              
+              <div class="action-dropdown-wrapper">
+                <span class="material-symbols-outlined action-icon" (click)="showNotifications = !showNotifications">notifications</span>
+                <span class="notification-badge" *ngIf="false">0</span>
+                <div class="action-dropdown" *ngIf="showNotifications">
+                  <div class="dropdown-header">Notifications</div>
+                  <div class="dropdown-body empty">No new notifications</div>
+                </div>
+              </div>
+
+              <div class="action-dropdown-wrapper">
+                <span class="material-symbols-outlined action-icon" (click)="showHelp = !showHelp">help</span>
+                <div class="action-dropdown" *ngIf="showHelp">
+                  <div class="dropdown-header">Help & Support</div>
+                  <div class="dropdown-body">
+                    <a href="#" class="dropdown-item">User Manual</a>
+                    <a href="#" class="dropdown-item">Keyboard Shortcuts</a>
+                    <a href="#" class="dropdown-item">Contact Support</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Dynamic Content -->
+        <div class="content-wrapper">
+          <router-outlet></router-outlet>
+        </div>
+      </main>
+    </div>

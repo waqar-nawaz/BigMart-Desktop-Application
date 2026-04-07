@@ -1,0 +1,99 @@
+<div class="page-container">
+  <header class="page-header">
+    <div class="page-title">
+      <h1>New Purchase Order</h1>
+      <p>Draft a new order to send to suppliers</p>
+    </div>
+  </header>
+
+  <form [formGroup]="poForm" (ngSubmit)="submit()">
+    <div class="card mb-4" style="padding: var(--space-lg);">
+      <h3 style="margin-top: 0; margin-bottom: var(--space-md);">General Details</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Supplier <span class="text-danger">*</span></label>
+          <select formControlName="supplier_id">
+            <option value="">Select Supplier...</option>
+            <option *ngFor="let s of suppliers" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Expected Delivery Date</label>
+          <input type="date" formControlName="expected_date" />
+        </div>
+        <div class="form-group span-2">
+          <label>Notes / Instructions</label>
+          <input type="text" formControlName="notes" placeholder="Any specific requirements for this order..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4" style="padding: 0;">
+      <header style="padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">Order Items</h3>
+        <button type="button" class="btn btn-sm btn-ghost" (click)="addItem()">
+          <span class="material-symbols-outlined">add</span> Add Item
+        </button>
+      </header>
+      
+      <div class="table-container" formArrayName="items" style="padding-bottom: var(--space-md);">
+        <table style="width: 100%;">
+          <thead>
+            <tr>
+              <th style="width: 45%;">Product</th>
+              <th style="width: 15%;">Quantity</th>
+              <th style="width: 20%;">Unit Cost (Rs.)</th>
+              <th style="width: 15%;">Total (Rs.)</th>
+              <th style="width: 5%;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let itemCtrl of items.controls; let i = index" [formGroupName]="i">
+              <td>
+                <select formControlName="product_id" (change)="onProductChange(i)" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color);">
+                  <option value="">Select Product...</option>
+                  <option *ngFor="let p of products" [value]="p.id">{{ p.name }} (Stock: {{ p.stock_quantity }})</option>
+                </select>
+              </td>
+              <td>
+                <input type="number" formControlName="quantity_ordered" min="1" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color);" />
+              </td>
+              <td>
+                <input type="number" formControlName="unit_cost" min="0" step="0.01" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color);" />
+              </td>
+              <td class="font-bold">
+                {{ (itemCtrl.get('quantity_ordered')?.value || 0) * (itemCtrl.get('unit_cost')?.value || 0) | number:'1.2-2' }}
+              </td>
+              <td>
+                <button type="button" class="btn-icon text-danger" (click)="removeItem(i)" [disabled]="items.length === 1">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Totals & Actions -->
+    <div class="card" style="padding: var(--space-lg); display: flex; justify-content: flex-end;">
+      <div style="width: 300px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="color: var(--text-secondary);">Subtotal:</span>
+          <span>Rs. {{ subtotal | number:'1.2-2' }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: 800; border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: var(--space-lg);">
+          <span>Total Order:</span>
+          <span class="text-primary">Rs. {{ subtotal | number:'1.2-2' }}</span>
+        </div>
+        
+        <div style="display: flex; gap: var(--space-md); justify-content: flex-end;">
+          <button type="button" class="btn" (click)="cancel()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="poForm.invalid || items.length === 0 || saving">
+            {{ saving ? 'Saving...' : 'Create Order' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,30 @@
+<div class="modal-overlay" *ngIf="show" (click)="(options.isAlert) ? confirm() : cancel()">
+  <div class="modal-content confirm-modal card" (click)="$event.stopPropagation()">
+    <header class="modal-header" [ngClass]="'header-' + (options.type || 'warning')">
+      <div style="display: flex; align-items: center; gap: var(--space-md);">
+        <span class="material-symbols-outlined icon-large">
+          {{ 
+            options.type === 'danger' ? 'report' : 
+            options.type === 'warning' ? 'warning' : 
+            options.type === 'success' ? 'check_circle' : 'info'
+          }}
+        </span>
+        <h2>{{ options.title }}</h2>
+      </div>
+      <button class="close-btn" (click)="cancel()" *ngIf="!options.isAlert">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+
+    <div class="confirm-body">
+      <p>{{ options.message }}</p>
+    </div>
+
+    <footer class="modal-footer">
+      <button class="btn" (click)="cancel()" *ngIf="!options.isAlert">{{ options.cancelText || 'Cancel' }}</button>
+      <button class="btn btn-{{ options.type || 'primary' }}" (click)="confirm()">
+        {{ options.confirmText || 'OK' }}
+      </button>
+    </footer>
+  </div>
+</div>

@@ -1,0 +1,111 @@
+.filters-card {
+      padding: var(--space-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+    }
+
+    .filter-row {
+      display: flex;
+      gap: var(--space-lg);
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+
+    .search-box {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: var(--bg-app);
+      padding: 0 var(--space-md);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+    }
+
+    .search-box input {
+      border: none;
+      background: none;
+      padding: 0.75rem;
+      width: 100%;
+      outline: none;
+      font-size: 0.875rem;
+    }
+
+    .select-box, .status-box {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .select-box label, .status-box label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .select-box select, .status-box select {
+      padding: 0.625rem 2.5rem 0.625rem 0.75rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      outline: none;
+      background-color: var(--bg-control);
+      min-width: 160px;
+      width: auto;
+    }
+
+    .stock-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 120px;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--bg-app);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress {
+      height: 100%;
+      background: var(--success);
+      border-radius: 2px;
+    }
+
+    .action-buttons { display: flex; gap: 8px; justify-content: center; }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+
+    .span-2 { grid-column: span 2; }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .modal-footer {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .mb-4 { margin-bottom: 1rem; }
+    .loading-spinner { border: 2px solid var(--bg-app); border-top: 2px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: block; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

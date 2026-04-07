@@ -1,0 +1,73 @@
+<div class="page-container">
+  <header class="page-header">
+    <div class="page-title">
+      <h1>Purchase Orders</h1>
+      <p>Manage inventory stock replenishment from suppliers</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" routerLink="/purchases/new">
+        <span class="material-symbols-outlined">add_shopping_cart</span>
+        New Purchase Order
+      </button>
+    </div>
+  </header>
+
+  <div class="card mb-4 filter-container">
+    <div class="search-box">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" placeholder="Search PO # or Supplier..." [(ngModel)]="searchTerm" (input)="applyFilters()">
+    </div>
+    <div class="date-filters">
+      <label style="font-weight: 600; font-size: 0.875rem; color: var(--text-secondary); margin-right: 8px;">Status:</label>
+      <select [(ngModel)]="selectedStatus" (change)="applyFilters()" style="padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-app); outline: none;">
+        <option value="">All Statuses</option>
+        <option value="pending">Pending</option>
+        <option value="partial">Partially Received</option>
+        <option value="received">Received</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>PO Number</th>
+            <th>Date</th>
+            <th>Supplier</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let po of filteredPurchases">
+            <td class="font-bold">{{ po.po_number }}</td>
+            <td>{{ po.created_at | date:'mediumDate' }}</td>
+            <td>{{ po.supplier_name || 'Unknown' }}</td>
+            <td class="font-bold text-primary">Rs. {{ po.total_amount | number:'1.2-2' }}</td>
+            <td>
+              <span class="badge" [ngClass]="{
+                'badge-warning': po.status === 'pending',
+                'badge-info': po.status === 'partial',
+                'badge-success': po.status === 'received'
+              }" style="padding: 4px 8px; border-radius: 4px;">{{ po.status | titlecase }}</span>
+            </td>
+            <td>
+              <button class="btn btn-ghost btn-sm" (click)="viewPurchase(po.id)">
+                View
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && !filteredPurchases.length">
+            <td colspan="6" class="text-center py-5 text-muted">No purchase orders found</td>
+          </tr>
+          <tr *ngIf="loading">
+            <td colspan="6" class="text-center py-5">Loading orders...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

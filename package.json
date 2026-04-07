@@ -1,0 +1,103 @@
+{
+  "name": "bigmart-pos",
+  "version": "1.0.0",
+  "description": "BigMart POS & Inventory Management — Electron + Angular + SQLite3",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently --kill-others-on-fail \"npm run ng:serve\" \"npm run electron:wait\"",
+    "electron:wait": "wait-on http://localhost:4200 && cross-env NODE_ENV=development electron . --dev",
+    "ng:serve": "cd frontend && ng serve --port 4200",
+    "ng:build": "cd frontend && ng build --configuration production",
+    "build": "npm run ng:build && electron-builder build",
+    "dist:win": "npm run ng:build && electron-builder --win",
+    "dist:mac": "npm run ng:build && electron-builder --mac",
+    "dist:linux": "npm run ng:build && electron-builder --linux",
+    "lint": "cd frontend && ng lint"
+  },
+  "build": {
+    "appId": "com.bigmart.pos",
+    "productName": "BigMart POS",
+    "copyright": "Copyright © 2025 BigMart",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "node_modules/**/*",
+      "!node_modules/*/{CHANGELOG.md,README.md,readme.md,readme}",
+      "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!node_modules/.bin"
+    ],
+    "extraResources": [
+      {
+        "from": "electron/assets",
+        "to": "assets"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "electron/assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "electron/assets/icon.icns",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "electron/assets/icon.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "keywords": [
+    "pos",
+    "inventory",
+    "bigmart",
+    "electron",
+    "angular",
+    "sqlite"
+  ],
+  "author": {
+    "name": "BigMart Dev Team",
+    "email": "dev@bigmart.com"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.6.0",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.0.0",
+    "dayjs": "^1.11.10",
+    "electron-updater": "^6.1.7",
+    "express": "^4.18.2",
+    "node-notifier": "^10.0.1",
+    "node-thermal-printer": "^4.3.3",
+    "pdfkit": "^0.14.0",
+    "uuid": "^9.0.0",
+    "xlsx": "^0.18.5"
+  }
+}

@@ -1,0 +1,221 @@
+<div class="page-container">
+      <header class="page-header">
+        <div class="page-title">
+          <h1>Inventory Management</h1>
+          <p>Manage products, stock levels, and categories</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" (click)="openAddModal()">
+            <span class="material-symbols-outlined">add</span>
+            Add Product
+          </button>
+        </div>
+      </header>
+
+      <!-- Filters -->
+      <div class="card filters-card mb-4">
+        <div class="filter-row">
+          <div class="search-box">
+            <span class="material-symbols-outlined">search</span>
+            <input 
+              type="text" 
+              placeholder="Search by name or barcode..." 
+              [(ngModel)]="searchTerm" 
+              (input)="applyFilters()"
+            />
+          </div>
+          <div class="select-box">
+            <label>Category:</label>
+            <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
+              <option value="">All Categories</option>
+              <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+            </select>
+          </div>
+          <div class="status-box">
+            <label>Stock Status:</label>
+            <select [(ngModel)]="stockFilter" (change)="applyFilters()">
+              <option value="all">All Items</option>
+              <option value="low">Low Stock Alert</option>
+              <option value="out">Out of Stock</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Table -->
+      <div class="card table-card">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Barcode</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Cost</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let product of filteredProducts">
+                <td class="font-mono text-xs">{{ product.barcode || '---' }}</td>
+                <td class="font-bold">{{ product.name }}</td>
+                <td>
+                  <span class="badge" [style.backgroundColor]="product.category_color + '20'" [style.color]="product.category_color">
+                    {{ product.category_name || 'Uncategorized' }}
+                  </span>
+                </td>
+                <td>Rs. {{ product.cost_price | number:'1.2-2' }}</td>
+                <td class="font-bold">Rs. {{ product.selling_price | number:'1.2-2' }}</td>
+                <td>
+                  <div class="stock-info">
+                    <span [class.text-danger]="product.stock_quantity <= product.min_stock_level">
+                      {{ product.stock_quantity }} {{ product.unit }}
+                    </span>
+                    <div class="progress-bar">
+                      <div class="progress" [style.width]="(product.stock_quantity / (product.max_stock_level || 100) * 100) + '%'" 
+                           [class.bg-danger]="product.stock_quantity <= product.min_stock_level"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn-icon" (click)="openAdjustmentModal(product)" title="Adjust Stock" style="color: var(--warning);">
+                      <span class="material-symbols-outlined">analytics</span>
+                    </button>
+                    <button class="btn-icon" (click)="openEditModal(product)" title="Edit">
+                      <span class="material-symbols-outlined">edit</span>
+                    </button>
+                    <button class="btn-icon text-danger" (click)="deleteProduct(product)" title="Delete">
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="!loading && !filteredProducts.length">
+                <td colspan="7" class="text-center py-5 text-muted">No products found</td>
+              </tr>
+              <tr *ngIf="loading">
+                <td colspan="7" class="text-center py-5">
+                  <div class="loading-spinner"></div>
+                  Loading data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Adjustment Modal -->
+    <div class="modal-overlay" *ngIf="showAdjustmentModal" (click)="showAdjustmentModal = false">
+      <div class="modal-content card" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <div style="display: flex; align-items: center; gap: 12px; padding: var(--space-md);">
+            <span class="material-symbols-outlined" style="color: var(--warning);">analytics</span>
+            <h2 style="margin: 0; font-size: 1.25rem;">Adjust Stock: {{ selectedProductAdjust?.name }}</h2>
+          </div>
+          <button class="close-btn" (click)="showAdjustmentModal = false">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <div style="padding: var(--space-lg);">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: 20px;">
+            <div class="form-group">
+              <label style="display: block; margin-bottom: 8px; font-weight: 500;">Adjustment Type</label>
+              <select [(ngModel)]="adjustmentType" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); color: var(--text-primary); outline: none;">
+                <option value="add">Add to Stock (+)</option>
+                <option value="remove">Remove from Stock (-)</option>
+                <option value="set">Set Exact Count (=)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="display: block; margin-bottom: 8px; font-weight: 500;">Quantity</label>
+              <input type="number" [(ngModel)]="adjustmentQty" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); color: var(--text-primary); outline: none;" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Reason for Adjustment <span class="text-danger">*</span></label>
+            <textarea [(ngModel)]="adjustmentReason" rows="3" placeholder="e.g. Damaged goods, inventory recount, supplier error..." style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); color: var(--text-primary); outline: none; font-family: inherit; font-size: 0.875rem;"></textarea>
+          </div>
+        </div>
+
+        <footer class="modal-footer" style="padding: var(--space-lg); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: var(--space-md);">
+          <button class="btn" (click)="showAdjustmentModal = false" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
+          <button class="btn btn-warning" (click)="submitAdjustment()" [disabled]="!adjustmentReason || adjusting" style="background: var(--warning); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined">check_circle</span>
+            {{ adjusting ? 'Reflecting Changes...' : 'Confirm Adjustment' }}
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Add/Edit Modal (Inline) -->
+    <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+      <div class="modal-content card" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <h2>{{ isEditing ? 'Edit Product' : 'Add New Product' }}</h2>
+          <button class="close-btn" (click)="closeModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <form [formGroup]="productForm" (ngSubmit)="saveProduct()">
+          <div class="form-grid">
+            <div class="form-group span-2">
+              <label>Product Name <span class="text-danger">*</span></label>
+              <input type="text" formControlName="name" placeholder="E.g. Coca-Cola 1.5L" />
+            </div>
+
+            <div class="form-group">
+              <label>Barcode</label>
+              <input type="text" formControlName="barcode" placeholder="Scan or enter barcode" />
+            </div>
+
+            <div class="form-group">
+              <label>Category</label>
+              <select formControlName="category_id">
+                <option value="">Select Category</option>
+                <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Cost Price <span class="text-danger">*</span></label>
+              <input type="number" formControlName="cost_price" />
+            </div>
+
+            <div class="form-group">
+              <label>Selling Price <span class="text-danger">*</span></label>
+              <input type="number" formControlName="selling_price" />
+            </div>
+
+            <div class="form-group">
+              <label>Initial Stock <span class="text-danger">*</span></label>
+              <input type="number" formControlName="stock_quantity" />
+            </div>
+
+            <div class="form-group">
+              <label>Min. Level (Alert)</label>
+              <input type="number" formControlName="min_stock_level" />
+            </div>
+
+            <div class="form-group">
+              <label>Unit</label>
+              <input type="text" formControlName="unit" placeholder="E.g. pcs, kg, box" />
+            </div>
+          </div>
+
+          <footer class="modal-footer">
+            <button type="button" class="btn" (click)="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="productForm.invalid || saving">
+              <span class="material-symbols-outlined">save</span>
+              {{ saving ? 'Saving...' : 'Save Product' }}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>

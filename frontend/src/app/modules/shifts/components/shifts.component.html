@@ -1,0 +1,150 @@
+<div class="page-container">
+  <header class="page-header">
+    <div class="page-title">
+      <h1>Shift Management</h1>
+      <p>Manage cash register shifts and drawer balances</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="openShiftModal()" *ngIf="!activeShift">
+        <span class="material-symbols-outlined">play_circle</span>
+        Open Shift
+      </button>
+      <button class="btn btn-warning" (click)="closeShiftModal()" *ngIf="activeShift">
+        <span class="material-symbols-outlined">stop_circle</span>
+        Close Shift
+      </button>
+    </div>
+  </header>
+
+  <!-- Active Shift Info -->
+  <div class="card mb-4 bg-primary-light" *ngIf="activeShift" style="border: 1px solid var(--primary);">
+    <div style="padding: var(--space-lg); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h3 style="color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined">storefront</span>
+          Active Shift
+        </h3>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+          Started at {{ activeShift.start_time | date:'medium' }} by <strong>{{ activeShift.cashier_name || authService.currentUser?.full_name }}</strong>
+        </p>
+      </div>
+      <div style="text-align: right;">
+        <span style="font-size: 0.875rem; color: var(--text-secondary); display: block;">Opening Cash</span>
+        <strong style="font-size: 1.5rem; color: var(--text-primary)">Rs. {{ activeShift.opening_cash | number:'1.2-2' }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shift History Table -->
+  <div class="card table-card">
+    <header style="padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--border-color);">
+      <h3 style="margin: 0; font-size: 1rem;">Shift History</h3>
+    </header>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Cashier</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Opening Cash</th>
+            <th>Closing Cash</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let shift of shiftHistory">
+            <td class="font-bold">{{ shift.cashier_name }}</td>
+            <td>{{ shift.start_time | date:'short' }}</td>
+            <td>{{ shift.end_time ? (shift.end_time | date:'short') : '---' }}</td>
+            <td>Rs. {{ shift.opening_cash | number:'1.2-2' }}</td>
+            <td>{{ shift.closing_cash ? ('Rs. ' + (shift.closing_cash | number:'1.2-2')) : '---' }}</td>
+            <td>
+              <span class="badge" [ngClass]="shift.status === 'open' ? 'badge-primary' : 'badge-success'" style="padding: 4px 8px; border-radius: 4px;">
+                {{ shift.status | titlecase }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && !shiftHistory.length">
+            <td colspan="6" class="text-center py-5 text-muted">No shift history found</td>
+          </tr>
+          <tr *ngIf="loading">
+            <td colspan="6" class="text-center py-5">Loading shifts...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Open Shift Modal -->
+<div class="modal-overlay" *ngIf="showOpenModal" (click)="showOpenModal = false">
+  <div class="modal-content card" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <h2>Open Register Shift</h2>
+      <button class="close-btn" (click)="showOpenModal = false">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+
+    <form [formGroup]="openForm" (ngSubmit)="submitOpenShift()">
+      <div style="padding: var(--space-lg);">
+        <p style="margin-bottom: var(--space-lg); color: var(--text-secondary); font-size: 0.875rem;">
+          Enter the amount of cash currently in the register drawer.
+        </p>
+        <div class="form-group">
+          <label>Opening Cash Amount <span class="text-danger">*</span></label>
+          <input type="number" formControlName="opening_cash" placeholder="0.00" style="font-size: 1.5rem; padding: 12px; font-weight: 700; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); color: var(--text-primary); outline: none;" />
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn" (click)="showOpenModal = false">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="openForm.invalid || processing">
+          <span class="material-symbols-outlined">payments</span>
+          {{ processing ? 'Opening...' : 'Open Shift' }}
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<!-- Close Shift Modal -->
+<div class="modal-overlay" *ngIf="showCloseModal" (click)="showCloseModal = false">
+  <div class="modal-content card" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <h2>Close Register Shift</h2>
+      <button class="close-btn" (click)="showCloseModal = false">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+
+    <form [formGroup]="closeForm" (ngSubmit)="submitCloseShift()">
+      <div style="padding: var(--space-lg);">
+        <p style="margin-bottom: var(--space-lg); color: var(--text-secondary); font-size: 0.875rem;">
+          Count the physical cash in the drawer and record it below to reconcile.
+        </p>
+        
+        <div style="display: flex; flex-direction: column; gap: var(--space-lg);">
+          <div class="form-group">
+            <label>Actual Closing Cash <span class="text-danger">*</span></label>
+            <input type="number" formControlName="closing_cash" placeholder="0.00" style="font-size: 1.5rem; padding: 12px; font-weight: 700; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); color: var(--text-primary); outline: none;" />
+          </div>
+
+          <div class="form-group">
+            <label>Notes (Optional)</label>
+            <textarea formControlName="notes" rows="3" placeholder="Any cash discrepancies or notes..." style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-app); color: var(--text-primary); outline: none; font-family: inherit;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn" (click)="showCloseModal = false">Cancel</button>
+        <button type="submit" class="btn btn-warning" [disabled]="closeForm.invalid || processing">
+          <span class="material-symbols-outlined">check_circle</span>
+          {{ processing ? 'Closing...' : 'Confirm & Close Shift' }}
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>
